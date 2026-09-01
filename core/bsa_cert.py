@@ -15,9 +15,9 @@ from typing import Any, Dict, Optional
 
 def generate_bsa_certificate_data(
     evidence: Dict[str, Any],
-    case_id: str = "CYBER-CASE-2026-SIH26106",
-    officer_name: str = "Forensic Examiner (Cyber Squad)",
-    agency_name: str = "Digital Forensics & Incident Response Lab (DFIR / CERT-In)",
+    case_id: str = "AICTE-SIH26106-CASE-2026",
+    officer_name: str = "Digital Forensic Examiner (Team Cyber Squad)",
+    agency_name: str = "Digital Forensics & Incident Response Lab (AICTE SIH #26106)",
 ) -> Dict[str, Any]:
     """
     Constructs comprehensive forensic evidence metadata compliant with Section 63 BSA 2023.
@@ -48,9 +48,10 @@ def generate_bsa_certificate_data(
         "system_environment": {
             "workstation_hostname": hostname,
             "operating_system": os_info,
-            "software_tool": "Cyber Squad TUI Forensic Suite (SIH 2026 Engine v2.0.0)",
+            "software_tool": "Team Cyber Squad Forensic Suite (AICTE SIH 2026 Engine v2.0.0)",
             "airgap_isolated": True,
         },
+
         "evidence_profile": {
             "filename": filename,
             "size_bytes": size_bytes,

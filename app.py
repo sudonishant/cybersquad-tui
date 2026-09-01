@@ -135,13 +135,14 @@ def render_header(state: ForensicTUIState) -> Panel:
     badge = f"[{score_color}]THREAT SCORE: {risk_score}/100[/{score_color}]"
 
     title_text = Text.from_markup(
-        f"[bold white]CYBERSQUAD FORENSIC TUI[/bold white] [dim]|[/dim] "
-        f"[cyan]AIR-GAP LAB MODE[/cyan] [dim]|[/dim] "
+        f"[bold bright_magenta]AICTE - SIH 2026 #26106[/bold bright_magenta] [dim]|[/dim] "
+        f"[bold bright_cyan]TEAM CYBER SQUAD FORENSIC SUITE[/bold bright_cyan] [dim]|[/dim] "
         f"[bold yellow]CASE:[/bold yellow] [white]{state.case_id}[/white]   "
         f"{badge}   "
         f"[dim][{time_str}][/dim]"
     )
     return Panel(title_text, box=ROUNDED, border_style="cyan", padding=(0, 1))
+
 
 
 def render_tabs_bar(active_tab: int) -> Panel:
@@ -573,7 +574,8 @@ def render_tab_7_rules(state: ForensicTUIState) -> Layout:
 def render_tab_8_help() -> Panel:
     """Tab 8: Hotkeys reference and investigator cheat-sheet."""
     help_text = """
-[bold yellow]CYBERSQUAD TUI INVESTIGATOR GUIDE & HOTKEYS[/bold yellow]
+[bold bright_magenta]AICTE - SMART INDIA HACKATHON 2026 | PROBLEM STATEMENT #26106[/bold bright_magenta]
+[bold bright_cyan]TEAM CYBER SQUAD — AIR-GAPPED FORENSIC TERMINAL SUITE[/bold bright_cyan]
 
 [bold cyan]NAVIGATION HOTKEYS:[/bold cyan]
   [bold white][1][/bold white]  Overview & Threat Verdict       [bold white][5][/bold white]  Section 63 BSA 2023 Certificate
@@ -595,7 +597,8 @@ def render_tab_8_help() -> Panel:
   • Generate Legal Cert   : [green]python3 app.py --cert /evidence.eml --officer "IO Sharma" --agency "CERT-In"[/green]
   • Stream via Stdin Pipe : [green]cat suspicious_mail.eml | python3 app.py --stdin[/green]
 """
-    return Panel(Text.from_markup(help_text.strip()), title="[bold cyan]INVESTIGATOR CHEAT-SHEET & HOTKEYS[/bold cyan]", box=ROUNDED, border_style="cyan")
+    return Panel(Text.from_markup(help_text.strip()), title="[bold cyan]AICTE SIH #26106 | TEAM CYBER SQUAD INVESTIGATOR CHEAT-SHEET[/bold cyan]", box=ROUNDED, border_style="cyan")
+
 
 
 def render_footer(state: ForensicTUIState) -> Panel:
