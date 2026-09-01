@@ -21,15 +21,20 @@ Standalone, 100% Offline, Air-Gap Ready Terminal Forensic Suite for **Law Enforc
 ## 🚀 Quick Start & Installation
 
 ```bash
-# 1. Navigate to TUI directory
-cd cybersquad-tui-master
+# 1. Navigate to the project folder (Quotes are needed because of space in folder name)
+cd "/home/nee/Desktop/sih email/cybersquad-tui-master"
 
-# 2. Install minimal dependencies (Only 'rich')
-pip install -r requirements.txt
+# 2. Launch directly using launcher script (or python3 app.py)
+./run_tui.sh
 
-# 3. Launch Interactive Forensic TUI
+# Or run directly with Python:
 python3 app.py
 ```
+
+> [!NOTE]
+> On Kali Linux / Debian, `rich` is already installed. If running on a fresh machine, install via:
+> `sudo apt install python3-rich` or `pip install --break-system-packages -r requirements.txt`
+
 
 ---
 
