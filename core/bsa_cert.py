@@ -147,13 +147,15 @@ def format_bsa_certificate_text(cert_data: Dict[str, Any]) -> str:
 def export_bsa_certificate(
     evidence: Dict[str, Any],
     output_dir: str | Path = "./forensic_exports",
-    case_id: str = "CYBER-CASE-2026-SIH26106",
-    officer_name: str = "Forensic Examiner (Cyber Squad)",
-    agency_name: str = "Digital Forensics & Incident Response Lab (DFIR / CERT-In)",
+    case_id: str = "AICTE-SIH26106-CASE-2026",
+    officer_name: str = "Digital Forensic Examiner (Team Cyber Squad)",
+    agency_name: str = "Digital Forensics & Incident Response Lab (AICTE SIH #26106)",
 ) -> Dict[str, str]:
     """
-    Exports court-admissible certificate files (.txt, .json, and .sha256) to disk.
+    Exports court-admissible certificate files (.pdf, .txt, .json, and .sha256) to disk.
     """
+    from core.pdf_gen import export_bsa_pdf
+    
     out_path = Path(output_dir)
     out_path.mkdir(parents=True, exist_ok=True)
     
@@ -162,17 +164,21 @@ def export_bsa_certificate(
     
     base_name = f"BSA63_CERT_{evidence.get('sha256', 'evidence')[:12]}"
     
+    pdf_file = out_path / f"{base_name}.cert.pdf"
     txt_file = out_path / f"{base_name}.cert.txt"
     json_file = out_path / f"{base_name}.manifest.json"
     sha_file = out_path / f"{base_name}.sha256"
     
+    export_bsa_pdf(cert_data, pdf_file)
     txt_file.write_text(cert_text, encoding="utf-8")
     json_file.write_text(json.dumps(cert_data, indent=2), encoding="utf-8")
     sha_file.write_text(f"{evidence.get('sha256')}  {evidence.get('filename')}\n", encoding="utf-8")
     
     return {
+        "pdf_path": str(pdf_file.resolve()),
         "txt_path": str(txt_file.resolve()),
         "json_path": str(json_file.resolve()),
         "sha_path": str(sha_file.resolve()),
         "cert_id": cert_data["certificate_id"],
     }
+
