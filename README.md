@@ -45,18 +45,20 @@ python3 app.py
 - `[2]`: **RFC Headers & Hop Chronology** — Full header tree, multi-hop relay IP timeline, delta analysis.
 - `[3]`: **Hex Dump & Shannon Entropy Carver** — Live 16-byte hex dump + ASCII view, entropy distribution spectrum (`█▓▒░`).
 - `[4]`: **URL Defense Matrix** — Link breakdown table, punycode detection, credential harvesting flags.
-- `[5]`: **Section 63 BSA 2023 Certificate** — Live preview of court-admissible electronic evidence certificate.
-- `[6]`: **Batch Evidence Triage Queue** — Multi-evidence folder analysis table with risk scores.
-- `[7]`: **Threat Intel & Rules Generator** — Live generated YARA and Snort/Suricata rules.
-- `[8]` or `[?]`: **Help & Keybindings Reference** — Complete investigator guide.
+- `[5]`: **🤖 AI Forensic Analyst & Second Opinion** — Attack vector classification, psychological coercion triggers, synthetic/LLM phishing detector, and incident mitigation playbook.
+- `[6]`: **Section 63 BSA 2023 Certificate** — Live preview of court-admissible electronic evidence certificate.
+- `[7]`: **Batch Evidence Triage Queue** — Multi-evidence folder analysis table with risk scores.
+- `[8]`: **Threat Rules & Help** — Live generated YARA and Snort/Suricata rules.
 
 ### Forensic Actions:
+- `[A]`: Run / Refresh **AI Second Opinion Analysis**
 - `[E]`: Export Section 63 BSA 2023 Certificate (`.cert.txt`, `.json`, `.sha256`) to `./forensic_exports/`
 - `[Y]`: Export YARA Threat Hunting Rule to disk
 - `[S]`: Export Snort / Suricata IDS Network Rule to disk
 - `[B]`: Run Batch Folder Scan on current/parent directory
 - `[O]`: Open and load a new `.eml` file interactively
 - `[Q]`: Quit application cleanly
+
 
 ---
 
