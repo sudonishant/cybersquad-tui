@@ -92,10 +92,30 @@ class ForensicTUIState:
         self.hops = analyze_relay_hops(self.evidence.get("received_hops", []))
         self.ai_review = perform_offline_cognitive_nlp_analysis(self.evidence, self.threat)
         self.active_tab = 1
-        self.status_msg = "[bold green]System Online.[/bold green] Mode: [bold cyan]OFFLINE AIR-GAP TRIAGE[/bold cyan] ── Press [bold cyan][E][/bold cyan] to generate Sec 63 BSA PDF."
+        self.status_msg = "[bold green]✔ Forensic Workstation Ready.[/bold green] Mode: [bold cyan]OFFLINE AIR-GAP[/bold cyan] ── Press [bold cyan][E][/bold cyan] to generate Sec 63 BSA PDF."
         self.hex_offset = 0
         self.batch_data: Optional[Dict[str, Any]] = None
         self.case_id = f"CS-CASE-{datetime.now().strftime('%Y%m%d')}-{self.evidence.get('sha256', '0000')[:6].upper()}"
+        
+        # Discover available files in directory for interactive browser
+        self.directory = os.path.dirname(self.evidence_path) or "./"
+        self.file_list: List[str] = self._scan_dir_files()
+        self.selected_file_idx: int = 0
+        if Path(self.evidence_path).name in self.file_list:
+            self.selected_file_idx = self.file_list.index(Path(self.evidence_path).name)
+
+    def _scan_dir_files(self) -> List[str]:
+        """Discovers evidence files in the current folder."""
+        try:
+            files = [
+                f for f in os.listdir(self.directory)
+                if f.lower().endswith(('.eml', '.msg', '.pst', '.mbox'))
+            ]
+            if not files:
+                files = [Path(self.evidence_path).name, "urgent_wf.msg", "dump.pst", "clean_mail.eml"]
+            return sorted(files)
+        except Exception:
+            return [Path(self.evidence_path).name]
 
     def reload_file(self, file_path: str | Path):
         """Loads and processes a new evidence file."""
@@ -107,20 +127,42 @@ class ForensicTUIState:
             self.ai_review = perform_offline_cognitive_nlp_analysis(self.evidence, self.threat)
             self.case_id = f"CS-CASE-{datetime.now().strftime('%Y%m%d')}-{self.evidence.get('sha256', '0000')[:6].upper()}"
             self.hex_offset = 0
-            self.status_msg = f"[bold green]✔ Ingested: {Path(file_path).name} | SHA-256 Locked[/bold green]"
+            self.directory = os.path.dirname(self.evidence_path) or "./"
+            self.file_list = self._scan_dir_files()
+            if Path(self.evidence_path).name in self.file_list:
+                self.selected_file_idx = self.file_list.index(Path(self.evidence_path).name)
+            self.status_msg = f"[bold green]✔ Ingested: {Path(file_path).name} | SHA-256 Custody Locked[/bold green]"
         except Exception as e:
             self.status_msg = f"[bold red]✖ Error reading file: {str(e)}[/bold red]"
 
+    def move_file_selection(self, delta: int):
+        """Moves highlighted file in directory browser."""
+        if not self.file_list:
+            return
+        self.selected_file_idx = (self.selected_file_idx + delta) % len(self.file_list)
+        self.status_msg = f"[dim]Selected: {self.file_list[self.selected_file_idx]} (Press [Enter] to load)[/dim]"
+
+    def load_selected_file(self):
+        """Loads the currently highlighted file from the directory tree."""
+        if not self.file_list:
+            return
+        target_name = self.file_list[self.selected_file_idx]
+        target_path = os.path.join(self.directory, target_name)
+        if os.path.exists(target_path):
+            self.reload_file(target_path)
+        else:
+            self.status_msg = f"[yellow]File {target_name} loaded in demonstration view.[/yellow]"
+
     def refresh_ai(self):
         """Refreshes or runs AI analysis."""
-        self.status_msg = "[yellow]Running CatBERT Cognitive Forensic Inference...[/yellow]"
+        self.status_msg = "[yellow]Running CatBERT Cognitive Intent Inference...[/yellow]"
         self.ai_review = request_online_llm_analysis(self.evidence, self.threat)
         self.status_msg = "[bold green]✔ CatBERT NLP Intent Analysis Complete.[/bold green]"
         self.active_tab = 3
 
     def run_batch_scan(self, dir_path: str | Path):
         """Executes a batch triage scan on an evidence folder."""
-        self.status_msg = f"[yellow]Scanning evidence folder: {dir_path}...[/yellow]"
+        self.status_msg = f"[yellow]Auditing evidence directory: {dir_path}...[/yellow]"
         self.batch_data = scan_evidence_directory(dir_path)
         if self.batch_data.get("error"):
             self.status_msg = f"[bold red]✖ {self.batch_data['error']}[/bold red]"
@@ -131,7 +173,7 @@ class ForensicTUIState:
 
 
 def make_threat_meter(score: int, width: int = 18) -> str:
-    """Generates an ASCII threat meter."""
+    """Generates a clean ASCII threat meter."""
     filled = int((score / 100) * width)
     unfilled = width - filled
     color = "bright_red" if score >= 75 else "yellow" if score >= 45 else "green"
@@ -143,12 +185,12 @@ def render_header(state: ForensicTUIState) -> Panel:
     time_str = datetime.now().strftime("%I:%M:%S %p")
     risk_score = state.threat.get("risk_score", 0)
     score_color = "bright_red" if risk_score >= 75 else "yellow" if risk_score >= 45 else "green"
-    badge = f"[{score_color}]THREAT: {risk_score}/100[/{score_color}]"
+    badge = f"[{score_color}]THREAT SCORE: {risk_score}/100[/{score_color}]"
 
     title_text = Text.from_markup(
         f"[bold bright_magenta]CYBERSQUAD FORENSIC TUI v2.4[/bold bright_magenta] [dim]───[/dim] "
         f"[bold bright_cyan]AICTE SIH #26106[/bold bright_cyan] [dim]───[/dim] "
-        f"[yellow]Mode: OFFLINE AIR-GAP WORKSTATION[/yellow]   "
+        f"[yellow]Mode: OFFLINE AIR-GAP TRIAGE[/yellow]   "
         f"{badge}   [dim][{time_str}][/dim]"
     )
     return Panel(title_text, box=ROUNDED, border_style="cyan", padding=(0, 1))
@@ -157,14 +199,14 @@ def render_header(state: ForensicTUIState) -> Panel:
 def render_navigation_bar(active_tab: int) -> Panel:
     """Renders the top function keys / tabs navigation bar."""
     tabs = [
-        (1, "[F1] 4-Panel Deck"),
-        (2, "[F2] Hop Map"),
-        (3, "[F3] NLP Intent"),
-        (4, "[F4] Hex Carver"),
-        (5, "[F5] BSA-63 PDF"),
-        (6, "[F6] Batch Queue"),
-        (7, "[F7] YARA Rules"),
-        (8, "[F8] Help"),
+        (1, "[1] 4-Panel Deck"),
+        (2, "[2] Hop Map"),
+        (3, "[3] CatBERT Intent"),
+        (4, "[4] Hex Carver"),
+        (5, "[5] BSA-63 PDF"),
+        (6, "[6] Batch Queue"),
+        (7, "[7] YARA Rules"),
+        (8, "[8] Help"),
     ]
     parts: List[str] = []
     for num, label in tabs:
@@ -204,28 +246,27 @@ def render_tab_1_command_deck(state: ForensicTUIState) -> Layout:
     )
 
     # --------------------------------------------------------------------------
-    # Panel 1: 📁 EVIDENCE BROWSER (Directory Tree)
+    # Panel 1: 📁 EVIDENCE BROWSER (Directory Tree with Active Cursor)
     # --------------------------------------------------------------------------
-    curr_dir = os.path.dirname(state.evidence_path) or "./"
-    tree = Tree(f"[bold yellow]📁 /evidence/{Path(curr_dir).name}/[/bold yellow]")
+    tree = Tree(f"[bold yellow]📁 /evidence/{Path(state.directory).name}/[/bold yellow]")
     
-    # List actual evidence files in directory
-    try:
-        found_files = [f for f in os.listdir(curr_dir) if f.lower().endswith(('.eml', '.msg', '.pst', '.mbox'))][:6]
-        if not found_files:
-            found_files = ["mail_01.eml", "urgent_wf.msg", "dump.pst", "clean_invoice.eml"]
-        for f in found_files:
-            is_active = (f == Path(state.evidence_path).name)
-            prefix = "[bold green]▶ [/bold green]" if is_active else "  "
-            style = "bold bright_cyan" if is_active else "white"
-            tree.add(f"{prefix}[{style}]{f}[/{style}]")
-    except Exception:
-        tree.add(f"[bold green]▶ [/bold green][bold bright_cyan]{Path(state.evidence_path).name}[/bold bright_cyan]")
+    for idx, fname in enumerate(state.file_list[:6]):
+        is_highlighted = (idx == state.selected_file_idx)
+        is_currently_loaded = (fname == Path(state.evidence_path).name)
+        
+        if is_currently_loaded:
+            cursor = "[bold green]▶ [/bold green]"
+            style = "bold bright_cyan underline" if is_highlighted else "bold bright_cyan"
+        else:
+            cursor = "[bold yellow]→ [/bold yellow]" if is_highlighted else "  "
+            style = "bold yellow" if is_highlighted else "white"
+            
+        tree.add(f"{cursor}[{style}]{fname}[/{style}]")
 
     p1_content = Group(
         tree,
         Text(""),
-        Text.from_markup("[dim]Press [bold cyan][O][/bold cyan] to load another .eml / .pst file.[/dim]"),
+        Text.from_markup("[dim]Use [bold cyan]↑/↓[/bold cyan] keys & [bold cyan][Enter][/bold cyan] to load evidence file.[/dim]"),
     )
     layout["left_column"]["p1_browser"].update(Panel(
         p1_content,
@@ -253,9 +294,9 @@ def render_tab_1_command_deck(state: ForensicTUIState) -> Layout:
 
     p2_table = Table(expand=True, box=None, padding=(0, 1))
     p2_table.add_column("Indicator", style="bold cyan", width=16)
-    p2_table.add_column("Forensic Value", style="white")
+    p2_table.add_column("Forensic Artifact", style="white")
 
-    p2_table.add_row("• Case SHA-256", f"[bold green]{sha256[:20]}...{sha256[-8:]}[/bold green]")
+    p2_table.add_row("• Case SHA-256", f"[bold green]{sha256[:18]}...{sha256[-8:]}[/bold green]")
     p2_table.add_row("• From Header", f"[bold white]{meta.get('from', 'N/A')}[/bold white]")
     p2_table.add_row("• Return-Path", f"[yellow]{meta.get('return_path', 'bounce-handler@attacker-server.ru')}[/yellow]")
     p2_table.add_row("• SPF / DKIM", f"[{spf_color}]SPF: {spf_st}[/{spf_color}] | [{dkim_color}]DKIM: {dkim_st}[/{dkim_color}] | [{dmarc_color}]DMARC: {dmarc_st}[/{dmarc_color}]")
@@ -275,7 +316,7 @@ def render_tab_1_command_deck(state: ForensicTUIState) -> Layout:
     hops_table = Table(expand=True, box=SIMPLE)
     hops_table.add_column("Hop", style="bold cyan", width=7)
     hops_table.add_column("Relay IP", style="bold white", width=15)
-    hops_table.add_column("Classification / MTA Node", style="magenta")
+    hops_table.add_column("Classification / Node", style="magenta")
 
     if state.hops:
         for h in state.hops[:3]:
@@ -553,15 +594,14 @@ def render_tab_5_bsa_cert(state: ForensicTUIState) -> Panel:
 def render_tab_6_batch(state: ForensicTUIState) -> Panel:
     """Tab 6: Batch Folder Triage Table."""
     if not state.batch_data:
-        default_dir = os.path.dirname(state.evidence_path) or "./"
         hint = f"""
 [bold yellow]BATCH EVIDENCE FOLDER AUDITING ENGINE[/bold yellow]
 
-Fast multi-file triage for seized storage media and 50 GB mail dumps.
+Fast multi-file triage for seized storage media and bulk mailbox dumps.
 
 [bold white]ACTIONS:[/bold white]
-• Press [bold cyan][B][/bold cyan] to audit current directory ([bold yellow]{default_dir}[/bold yellow])
-• CLI Command: [bold cyan]cybersquad-tui batch-scan /media/forensics/ --export-csv triage.csv[/bold cyan]
+• Press [bold cyan][B][/bold cyan] to audit current directory ([bold yellow]{state.directory}[/bold yellow])
+• CLI Command: [bold cyan]python3 app.py --batch /media/cases/ --export-csv triage.csv[/bold cyan]
 """
         return Panel(Align.center(Text.from_markup(hint.strip())), title="[bold cyan]BATCH EVIDENCE TRIAGE QUEUE[/bold cyan]", box=ROUNDED, border_style="cyan")
 
@@ -646,14 +686,15 @@ def render_tab_8_help() -> Panel:
 [bold bright_cyan]TEAM CYBER SQUAD — AIR-GAPPED FORENSIC TERMINAL SUITE[/bold bright_cyan]
 
 [bold cyan]KEYBOARD CONTROLS:[/bold cyan]
-  [bold white][1-8][/bold white]  Switch views (1: 4-Panel Deck, 2: Hop Map, 3: CatBERT, 4: Hex, 5: BSA-63, 6: Batch, 7: YARA, 8: Help)
-  [bold white][A][/bold white]    Run / Refresh CatBERT NLP Intent Analysis
-  [bold white][E][/bold white]    Generate Print-Ready Section 63 BSA PDF + Text Certificate
-  [bold white][Y][/bold white]    Export YARA Threat Rule to disk
-  [bold white][S][/bold white]    Export Snort / Suricata IDS Rule to disk
-  [bold white][B][/bold white]    Run Batch Directory Scan
-  [bold white][O][/bold white]    Open / Ingest a new .eml / .msg / .pst file interactively
-  [bold white][Q][/bold white]    Quit TUI cleanly
+  [bold white][1-8][/bold white]       Switch views (1: 4-Panel Deck, 2: Hop Map, 3: CatBERT, 4: Hex, 5: BSA-63, 6: Batch, 7: YARA, 8: Help)
+  [bold white]↑ / ↓[/bold white]       Navigate evidence files in directory browser
+  [bold white][Enter][/bold white]     Load and inspect highlighted evidence file
+  [bold white][E][/bold white]         Generate Print-Ready Section 63 BSA PDF + Text Certificate
+  [bold white][A][/bold white]         Run / Refresh CatBERT NLP Intent Analysis
+  [bold white][Y] / [S][/bold white]   Export YARA / Snort threat rules to disk
+  [bold white][B][/bold white]         Run Batch Directory Audit
+  [bold white][O][/bold white]         Open custom file path interactively
+  [bold white][Q][/bold white]         Quit TUI cleanly
 
 [bold cyan]TERMINAL PIPELINE EXAMPLES:[/bold cyan]
   • Inspect file   : [green]python3 app.py /media/forensics/suspect_mail.eml[/green]
@@ -670,7 +711,7 @@ def render_footer(state: ForensicTUIState) -> Panel:
     status_bar = (
         f"[STATUS] Threat: [{score_color}]CRITICAL (Score: {risk_score}/100)[/{score_color}] ── "
         f"Press [bold cyan][E][/bold cyan] to generate Sec 63 BSA PDF  │  "
-        f"[bold cyan][1-8][/bold cyan] Switch Views  │  [bold cyan][O][/bold cyan] Open  │  [bold cyan][Q][/bold cyan] Quit"
+        f"[bold cyan][1-8][/bold cyan] Views  │  [bold cyan]↑/↓ + Enter[/bold cyan] Browse  │  [bold cyan][Q][/bold cyan] Quit"
     )
     content = Group(
         Text.from_markup(state.status_msg),
@@ -742,6 +783,8 @@ def get_key_nonblocking() -> Optional[str]:
                     elif seq == "OS":
                         return "4"  # F4
                 return "ESC"
+            elif ch in ("\r", "\n"):
+                return "ENTER"
             return ch
         except Exception:
             return None
@@ -775,18 +818,23 @@ def run_interactive_tui(state: ForensicTUIState):
                 elif key in {"1", "2", "3", "4", "5", "6", "7", "8"}:
                     state.active_tab = int(key)
                     state.status_msg = f"[dim]Switched to View {key}.[/dim]"
+                elif key in {"UP", "k", "K"}:
+                    state.move_file_selection(-1)
+                elif key in {"DOWN", "j", "J"}:
+                    state.move_file_selection(1)
+                elif key == "ENTER":
+                    state.load_selected_file()
                 elif key in {"a", "A"}:
                     state.refresh_ai()
                 elif key in {"e", "E"}:
                     res = export_bsa_certificate(state.evidence, output_dir="./forensic_exports", case_id=state.case_id)
                     pdf_name = Path(res.get('pdf_path', 'cert.pdf')).name
-                    state.status_msg = f"[bold green]✔ Generated Court-Admissible Section 63 BSA PDF: {pdf_name}[/bold green]"
+                    state.status_msg = f"[bold green]✔ Generated Section 63 BSA PDF Certificate: {pdf_name}[/bold green]"
                 elif key in {"y", "Y", "s", "S"}:
                     res = export_threat_rules(state.evidence, state.threat, output_dir="./forensic_exports")
-                    state.status_msg = f"[bold green]✔ Rules exported to ./forensic_exports/[/bold green]"
+                    state.status_msg = f"[bold green]✔ Threat Rules exported to ./forensic_exports/[/bold green]"
                 elif key in {"b", "B"}:
-                    scan_dir = os.path.dirname(state.evidence_path) or "./"
-                    state.run_batch_scan(scan_dir)
+                    state.run_batch_scan(state.directory)
                 elif key in {"o", "O"}:
                     if old_settings:
                         termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
